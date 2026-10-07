@@ -1,40 +1,32 @@
 import express from "express";
+import { db } from "./db.js";
 const app = express();
 
 app.use(express.json());
 
-const notes = [
-  { id: 1, text: "Belajar Express" },
-  { id: 2, text: "Bikin API pertama" },
-];
-
-app.get("/notes", (req, res) => {
-  res.json(notes);
+app.get("/notes", async (req, res) => {
+  const [rows] = await db.query("SELECT * FROM notes");
+  res.json(rows);
 });
 
-app.get("/notes/:id", (req, res) => {
+app.get("/notes/:id", async (req, res) => {
   const notesId = parseInt(req.params.id);
-  const note = notes.find((n) => n.id === notesId);
+  const [note] = await db.query(`SELECT * FROM notes WHERE id="${notesId}"`);
   if (!note) {
     return res.status(404).json({ message: "Data tidak ditemukan" });
   }
   res.json(note);
 });
 
-app.post("/notes", (req, res) => {
+app.post("/notes", async (req, res) => {
   const { text } = req.body;
 
   if (!text) {
     return res.status(400).json({ error: "text wajib diisi" });
   }
 
-  const newNote = {
-    id: notes.length + 1,
-    text,
-  };
-
-  notes.push(newNote);
-  res.status(201).json(newNote);
+  const [result] = await db.query("INSERT INTO notes (text) VALUES(?)", [text]);
+  res.status(201).json({ id: result.insertId, text });
 });
 
 app.put("/notes/:id", (req, res) => {
